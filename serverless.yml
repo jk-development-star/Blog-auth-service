@@ -1,0 +1,73 @@
+service: auth-service
+plugins:
+  - serverless-jetpack
+  # - serverless-prune-plugin
+  # - serverless-offline
+custom:
+  # apiKeys:
+  #   - name: APIKey
+  prune:
+    automatic: true
+    number: 1
+provider:
+  name: aws
+  runtime: nodejs20.x
+  region: us-east-1
+  stage: dev
+  stackName: Auth-Service
+  role: arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda
+  memorySize: 1024
+  timeout: 29
+  versionFunctions: false
+  endpointType: regional
+  tracing:
+    lambda: true
+  # deploymentBucket:
+  #   name: deploymentBucket
+  stackTags:
+    environment: dev        
+functions:
+  VerifyToken: 
+    handler: handler.verifyToken
+    description: common auth function
+    name: verify-token
+    environment:
+      XRAY_ENABLED: true
+      STAGE: dev
+      JWT_KEY: secret
+  login:
+    handler: handler.loginUser
+    description: Login function
+    name: login
+    environment:
+      XRAY_ENABLED: true
+      STAGE: dev
+      DATABASE_URL: mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App
+      DB_NAME: auths
+      JWT_KEY: secret
+    events:
+      - http:
+          path: /api/v1.0/blogsite/login
+          method: post
+          cors: true
+  StoreUser:
+    handler: handler.storeUser
+    description: Store user function
+    name: store-user
+    environment:
+      XRAY_ENABLED: true
+      STAGE: dev
+      DATABASE_URL: mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App
+      DB_NAME: auths
+    events:
+      - http:
+          path: /api/v1.0/blogsite
+          method: post
+          cors: true
+package:
+  exclude:
+    - coverage/**
+    - test/**
+    - package-lock.json
+    - .npm/**
+    - .idea/**      
