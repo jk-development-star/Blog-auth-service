@@ -1,20 +1,11 @@
-service: auth-service
-plugins:
-  - serverless-jetpack
-  # - serverless-prune-plugin
-  # - serverless-offline
-custom:
-  # apiKeys:
-  #   - name: APIKey
-  prune:
-    automatic: true
-    number: 1
+service: aws-node-project
+
 provider:
   name: aws
   runtime: nodejs20.x
   region: us-east-1
   stage: dev
-  stackName: Auth-Service
+  stackName: Node-API-Auth
   role: arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda
   memorySize: 1024
   timeout: 29
@@ -22,23 +13,13 @@ provider:
   endpointType: regional
   tracing:
     lambda: true
-  # deploymentBucket:
-  #   name: deploymentBucket
   stackTags:
-    environment: dev        
+    environment: dev
 functions:
-  VerifyToken: 
-    handler: handler.verifyToken
-    description: common auth function
-    name: verify-token
-    environment:
-      XRAY_ENABLED: true
-      STAGE: dev
-      JWT_KEY: secret
-  login:
-    handler: handler.loginUser
-    description: Login function
-    name: login
+  UserLogin:
+    handler: handler.userLogin
+    description: User Login function
+    name: user-login
     environment:
       XRAY_ENABLED: true
       STAGE: dev
@@ -49,11 +30,33 @@ functions:
       - http:
           path: /api/v1.0/blogsite/login
           method: post
-          cors: true
-  StoreUser:
-    handler: handler.storeUser
+          cors: 
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: true
+            methods:
+              - GET
+              - POST
+              - PATCH
+              - PUT
+              - DELETE
+              - OPTIONS
+  VerifyAuthToken:
+    handler: handler.verifyAuthToken
+    description: User token verify function
+    name: verify-auth-token
+    environment:
+      XRAY_ENABLED: true
+      STAGE: dev
+      DATABASE_URL: mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App
+      DB_NAME: auths
+      JWT_KEY: secret   
+  StoreAuthUser:
+    handler: handler.storeAuthUser
     description: Store user function
-    name: store-user
+    name: store-auth-user
     environment:
       XRAY_ENABLED: true
       STAGE: dev
@@ -61,13 +64,36 @@ functions:
       DB_NAME: auths
     events:
       - http:
-          path: /api/v1.0/blogsite
+          path: api/v1.0/blogsite
           method: post
-          cors: true
+          private: false
+          cors: true                              
+resources:
+  Resources:
+    GatewayResponseDefault4XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+        ResponseType: DEFAULT_4XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
+    GatewayResponseDEFAULT5XX:
+      Type: 'AWS::ApiGateway::GatewayResponse'
+      Properties:
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+        ResponseType: DEFAULT_5XX
+        RestApiId:
+          Ref: 'ApiGatewayRestApi'
 package:
   exclude:
     - coverage/**
     - test/**
     - package-lock.json
     - .npm/**
-    - .idea/**      
+    - .idea/**
+ 
+ 

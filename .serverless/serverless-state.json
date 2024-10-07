@@ -1,15 +1,15 @@
 {
   "service": {
-    "service": "auth-service",
+    "service": "aws-node-project",
     "serviceObject": {
-      "name": "auth-service"
+      "name": "aws-node-project"
     },
     "provider": {
       "name": "aws",
       "runtime": "nodejs20.x",
       "region": "us-east-1",
       "stage": "dev",
-      "stackName": "Auth-Service",
+      "stackName": "Node-API-Auth",
       "role": "arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda",
       "memorySize": 1024,
       "timeout": 29,
@@ -94,70 +94,39 @@
               }
             }
           },
-          "VerifyTokenLogGroup": {
+          "UserLoginLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/verify-token"
+              "LogGroupName": "/aws/lambda/user-login"
             }
           },
-          "LoginLogGroup": {
+          "VerifyAuthTokenLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/login"
+              "LogGroupName": "/aws/lambda/verify-auth-token"
             }
           },
-          "StoreUserLogGroup": {
+          "StoreAuthUserLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/store-user"
+              "LogGroupName": "/aws/lambda/store-auth-user"
             }
           },
-          "VerifyTokenLambdaFunction": {
+          "UserLoginLambdaFunction": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/auth-service/dev/1727944863789-2024-10-03T08:41:03.789Z/auth-service.zip"
+                "S3Key": "serverless/aws-node-project/dev/1728284481975-2024-10-07T07:01:21.975Z/aws-node-project.zip"
               },
-              "Handler": "handler.verifyToken",
+              "Handler": "handler.userLogin",
               "Runtime": "nodejs20.x",
-              "FunctionName": "verify-token",
+              "FunctionName": "user-login",
               "MemorySize": 1024,
               "Timeout": 29,
-              "Description": "common auth function",
-              "TracingConfig": {
-                "Mode": "Active"
-              },
-              "Environment": {
-                "Variables": {
-                  "XRAY_ENABLED": "true",
-                  "STAGE": "dev",
-                  "JWT_KEY": "secret"
-                }
-              },
-              "Role": "arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda"
-            },
-            "DependsOn": [
-              "VerifyTokenLogGroup"
-            ]
-          },
-          "LoginLambdaFunction": {
-            "Type": "AWS::Lambda::Function",
-            "Properties": {
-              "Code": {
-                "S3Bucket": {
-                  "Ref": "ServerlessDeploymentBucket"
-                },
-                "S3Key": "serverless/auth-service/dev/1727944863789-2024-10-03T08:41:03.789Z/auth-service.zip"
-              },
-              "Handler": "handler.loginUser",
-              "Runtime": "nodejs20.x",
-              "FunctionName": "login",
-              "MemorySize": 1024,
-              "Timeout": 29,
-              "Description": "Login function",
+              "Description": "User Login function",
               "TracingConfig": {
                 "Mode": "Active"
               },
@@ -173,21 +142,54 @@
               "Role": "arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda"
             },
             "DependsOn": [
-              "LoginLogGroup"
+              "UserLoginLogGroup"
             ]
           },
-          "StoreUserLambdaFunction": {
+          "VerifyAuthTokenLambdaFunction": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/auth-service/dev/1727944863789-2024-10-03T08:41:03.789Z/auth-service.zip"
+                "S3Key": "serverless/aws-node-project/dev/1728284481975-2024-10-07T07:01:21.975Z/aws-node-project.zip"
               },
-              "Handler": "handler.storeUser",
+              "Handler": "handler.verifyAuthToken",
               "Runtime": "nodejs20.x",
-              "FunctionName": "store-user",
+              "FunctionName": "verify-auth-token",
+              "MemorySize": 1024,
+              "Timeout": 29,
+              "Description": "User token verify function",
+              "TracingConfig": {
+                "Mode": "Active"
+              },
+              "Environment": {
+                "Variables": {
+                  "XRAY_ENABLED": "true",
+                  "STAGE": "dev",
+                  "DATABASE_URL": "mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App",
+                  "DB_NAME": "auths",
+                  "JWT_KEY": "secret"
+                }
+              },
+              "Role": "arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda"
+            },
+            "DependsOn": [
+              "VerifyAuthTokenLogGroup"
+            ]
+          },
+          "StoreAuthUserLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/aws-node-project/dev/1728284481975-2024-10-07T07:01:21.975Z/aws-node-project.zip"
+              },
+              "Handler": "handler.storeAuthUser",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "store-auth-user",
               "MemorySize": 1024,
               "Timeout": 29,
               "Description": "Store user function",
@@ -205,13 +207,13 @@
               "Role": "arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda"
             },
             "DependsOn": [
-              "StoreUserLogGroup"
+              "StoreAuthUserLogGroup"
             ]
           },
           "ApiGatewayRestApi": {
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
-              "Name": "dev-auth-service",
+              "Name": "dev-aws-node-project",
               "EndpointConfiguration": {
                 "Types": [
                   "REGIONAL"
@@ -282,7 +284,8 @@
                   "ResponseParameters": {
                     "method.response.header.Access-Control-Allow-Origin": true,
                     "method.response.header.Access-Control-Allow-Headers": true,
-                    "method.response.header.Access-Control-Allow-Methods": true
+                    "method.response.header.Access-Control-Allow-Methods": true,
+                    "method.response.header.Access-Control-Allow-Credentials": true
                   },
                   "ResponseModels": {}
                 }
@@ -299,8 +302,9 @@
                     "StatusCode": "200",
                     "ResponseParameters": {
                       "method.response.header.Access-Control-Allow-Origin": "'*'",
-                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
-                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'",
+                      "method.response.header.Access-Control-Allow-Methods": "'GET,POST,PATCH,PUT,DELETE,OPTIONS'",
+                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
                     },
                     "ResponseTemplates": {
                       "application/json": ""
@@ -392,7 +396,7 @@
                       ":lambda:path/2015-03-31/functions/",
                       {
                         "Fn::GetAtt": [
-                          "LoginLambdaFunction",
+                          "UserLoginLambdaFunction",
                           "Arn"
                         ]
                       },
@@ -404,7 +408,7 @@
               "MethodResponses": []
             },
             "DependsOn": [
-              "LoginLambdaPermissionApiGateway"
+              "UserLoginLambdaPermissionApiGateway"
             ]
           },
           "ApiGatewayMethodApiV10BlogsitePost": {
@@ -438,7 +442,7 @@
                       ":lambda:path/2015-03-31/functions/",
                       {
                         "Fn::GetAtt": [
-                          "StoreUserLambdaFunction",
+                          "StoreAuthUserLambdaFunction",
                           "Arn"
                         ]
                       },
@@ -450,10 +454,10 @@
               "MethodResponses": []
             },
             "DependsOn": [
-              "StoreUserLambdaPermissionApiGateway"
+              "StoreAuthUserLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayDeployment1727944855830": {
+          "ApiGatewayDeployment1728284476996": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -468,12 +472,12 @@
               "ApiGatewayMethodApiV10BlogsitePost"
             ]
           },
-          "LoginLambdaPermissionApiGateway": {
+          "UserLoginLambdaPermissionApiGateway": {
             "Type": "AWS::Lambda::Permission",
             "Properties": {
               "FunctionName": {
                 "Fn::GetAtt": [
-                  "LoginLambdaFunction",
+                  "UserLoginLambdaFunction",
                   "Arn"
                 ]
               },
@@ -505,12 +509,12 @@
               }
             }
           },
-          "StoreUserLambdaPermissionApiGateway": {
+          "StoreAuthUserLambdaPermissionApiGateway": {
             "Type": "AWS::Lambda::Permission",
             "Properties": {
               "FunctionName": {
                 "Fn::GetAtt": [
-                  "StoreUserLambdaFunction",
+                  "StoreAuthUserLambdaFunction",
                   "Arn"
                 ]
               },
@@ -541,6 +545,32 @@
                 ]
               }
             }
+          },
+          "GatewayResponseDefault4XX": {
+            "Type": "AWS::ApiGateway::GatewayResponse",
+            "Properties": {
+              "ResponseParameters": {
+                "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+                "gatewayresponse.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'"
+              },
+              "ResponseType": "DEFAULT_4XX",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "GatewayResponseDEFAULT5XX": {
+            "Type": "AWS::ApiGateway::GatewayResponse",
+            "Properties": {
+              "ResponseParameters": {
+                "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+                "gatewayresponse.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'"
+              },
+              "ResponseType": "DEFAULT_5XX",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
           }
         },
         "Outputs": {
@@ -549,7 +579,7 @@
               "Ref": "ServerlessDeploymentBucket"
             },
             "Export": {
-              "Name": "sls-auth-service-dev-ServerlessDeploymentBucketName"
+              "Name": "sls-aws-node-project-dev-ServerlessDeploymentBucketName"
             }
           },
           "ServiceEndpoint": {
@@ -575,7 +605,7 @@
               ]
             },
             "Export": {
-              "Name": "sls-auth-service-dev-ServiceEndpoint"
+              "Name": "sls-aws-node-project-dev-ServiceEndpoint"
             }
           }
         }
@@ -664,37 +694,12 @@
       },
       "vpc": {}
     },
-    "custom": {
-      "prune": {
-        "automatic": true,
-        "number": 1
-      }
-    },
-    "plugins": [
-      "serverless-jetpack"
-    ],
     "pluginsData": {},
     "functions": {
-      "VerifyToken": {
-        "handler": "handler.verifyToken",
-        "description": "common auth function",
-        "name": "verify-token",
-        "environment": {
-          "XRAY_ENABLED": "true",
-          "STAGE": "dev",
-          "JWT_KEY": "secret"
-        },
-        "events": [],
-        "package": {},
-        "memory": 1024,
-        "timeout": 29,
-        "runtime": "nodejs20.x",
-        "vpc": {}
-      },
-      "login": {
-        "handler": "handler.loginUser",
-        "description": "Login function",
-        "name": "login",
+      "UserLogin": {
+        "handler": "handler.userLogin",
+        "description": "User Login function",
+        "name": "user-login",
         "environment": {
           "XRAY_ENABLED": "true",
           "STAGE": "dev",
@@ -710,19 +715,18 @@
               "cors": {
                 "origin": "*",
                 "methods": [
-                  "OPTIONS",
-                  "POST"
+                  "GET",
+                  "POST",
+                  "PATCH",
+                  "PUT",
+                  "DELETE",
+                  "OPTIONS"
                 ],
                 "headers": [
                   "Content-Type",
-                  "X-Amz-Date",
-                  "Authorization",
-                  "X-Api-Key",
-                  "X-Amz-Security-Token",
-                  "X-Amz-User-Agent",
-                  "X-Amzn-Trace-Id"
+                  "Authorization"
                 ],
-                "allowCredentials": false
+                "allowCredentials": true
               },
               "integration": "AWS_PROXY"
             }
@@ -734,10 +738,28 @@
         "runtime": "nodejs20.x",
         "vpc": {}
       },
-      "StoreUser": {
-        "handler": "handler.storeUser",
+      "VerifyAuthToken": {
+        "handler": "handler.verifyAuthToken",
+        "description": "User token verify function",
+        "name": "verify-auth-token",
+        "environment": {
+          "XRAY_ENABLED": "true",
+          "STAGE": "dev",
+          "DATABASE_URL": "mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App",
+          "DB_NAME": "auths",
+          "JWT_KEY": "secret"
+        },
+        "events": [],
+        "package": {},
+        "memory": 1024,
+        "timeout": 29,
+        "runtime": "nodejs20.x",
+        "vpc": {}
+      },
+      "StoreAuthUser": {
+        "handler": "handler.storeAuthUser",
         "description": "Store user function",
-        "name": "store-user",
+        "name": "store-auth-user",
         "environment": {
           "XRAY_ENABLED": "true",
           "STAGE": "dev",
@@ -777,21 +799,49 @@
         "vpc": {}
       }
     },
+    "resources": {
+      "Resources": {
+        "GatewayResponseDefault4XX": {
+          "Type": "AWS::ApiGateway::GatewayResponse",
+          "Properties": {
+            "ResponseParameters": {
+              "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+              "gatewayresponse.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'"
+            },
+            "ResponseType": "DEFAULT_4XX",
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            }
+          }
+        },
+        "GatewayResponseDEFAULT5XX": {
+          "Type": "AWS::ApiGateway::GatewayResponse",
+          "Properties": {
+            "ResponseParameters": {
+              "gatewayresponse.header.Access-Control-Allow-Origin": "'*'",
+              "gatewayresponse.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'"
+            },
+            "ResponseType": "DEFAULT_5XX",
+            "RestApiId": {
+              "Ref": "ApiGatewayRestApi"
+            }
+          }
+        }
+      },
+      "Outputs": {}
+    },
     "configValidationMode": "warn",
     "serviceFilename": "serverless.yml",
     "initialServerlessConfig": {
-      "service": "auth-service",
-      "plugins": {
-        "$ref": "$[\"service\"][\"plugins\"]"
-      },
-      "custom": {
-        "$ref": "$[\"service\"][\"custom\"]"
-      },
+      "service": "aws-node-project",
       "provider": {
         "$ref": "$[\"service\"][\"provider\"]"
       },
       "functions": {
         "$ref": "$[\"service\"][\"functions\"]"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
       },
       "package": {
         "exclude": [
@@ -801,16 +851,17 @@
           ".npm/**",
           ".idea/**"
         ],
-        "artifactsS3KeyDirname": "serverless/auth-service/dev/code-artifacts",
-        "artifact": ".serverless\\auth-service.zip",
-        "artifactDirectoryName": "serverless/auth-service/dev/1727944863789-2024-10-03T08:41:03.789Z"
+        "artifactsS3KeyDirname": "serverless/aws-node-project/dev/code-artifacts",
+        "artifact": "D:\\BlogApp\\BlogAppBackend\\AWS-Node\\.serverless\\aws-node-project.zip",
+        "artifactDirectoryName": "serverless/aws-node-project/dev/1728284481975-2024-10-07T07:01:21.975Z"
       }
     },
     "layers": {},
-    "isDashboardMonitoringPreconfigured": false
+    "isDashboardMonitoringPreconfigured": false,
+    "artifact": "D:\\BlogApp\\BlogAppBackend\\AWS-Node\\.serverless\\aws-node-project.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/auth-service/dev/1727944863789-2024-10-03T08:41:03.789Z",
-    "artifact": "auth-service.zip"
+    "artifactDirectoryName": "serverless/aws-node-project/dev/1728284481975-2024-10-07T07:01:21.975Z",
+    "artifact": "aws-node-project.zip"
   }
 }
