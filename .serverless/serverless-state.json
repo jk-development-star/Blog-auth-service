@@ -1,15 +1,15 @@
 {
   "service": {
-    "service": "aws-node-project",
+    "service": "authorizer-test",
     "serviceObject": {
-      "name": "aws-node-project"
+      "name": "authorizer-test"
     },
     "provider": {
       "name": "aws",
       "runtime": "nodejs20.x",
       "region": "us-east-1",
       "stage": "dev",
-      "stackName": "Node-API-Auth",
+      "stackName": "Auth-Test-For-API-Gateway",
       "role": "arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda",
       "memorySize": 1024,
       "timeout": 29,
@@ -21,6 +21,15 @@
       "stackTags": {
         "environment": "dev"
       },
+      "iamRoleStatements": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "lambda:InvokeFunction"
+          ],
+          "Resource": "*"
+        }
+      ],
       "compiledCloudFormationTemplate": {
         "AWSTemplateFormatVersion": "2010-09-09",
         "Description": "The AWS CloudFormation template for this Serverless application",
@@ -97,19 +106,19 @@
           "UserLoginLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/user-login"
+              "LogGroupName": "/aws/lambda/login"
             }
           },
-          "VerifyAuthTokenLogGroup": {
+          "AuthorizeJwtTokenLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/verify-auth-token"
+              "LogGroupName": "/aws/lambda/authorizer-test-dev-authorizeJwtToken"
             }
           },
-          "StoreAuthUserLogGroup": {
+          "RegisterUserLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/store-auth-user"
+              "LogGroupName": "/aws/lambda/user-register"
             }
           },
           "UserLoginLambdaFunction": {
@@ -119,14 +128,14 @@
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/aws-node-project/dev/1728284481975-2024-10-07T07:01:21.975Z/aws-node-project.zip"
+                "S3Key": "serverless/authorizer-test/dev/1728657536245-2024-10-11T14:38:56.245Z/authorizer-test.zip"
               },
               "Handler": "handler.userLogin",
               "Runtime": "nodejs20.x",
-              "FunctionName": "user-login",
+              "FunctionName": "login",
               "MemorySize": 1024,
               "Timeout": 29,
-              "Description": "User Login function",
+              "Description": "Login function",
               "TracingConfig": {
                 "Mode": "Active"
               },
@@ -145,21 +154,44 @@
               "UserLoginLogGroup"
             ]
           },
-          "VerifyAuthTokenLambdaFunction": {
+          "AuthorizeJwtTokenLambdaFunction": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/aws-node-project/dev/1728284481975-2024-10-07T07:01:21.975Z/aws-node-project.zip"
+                "S3Key": "serverless/authorizer-test/dev/1728657536245-2024-10-11T14:38:56.245Z/authorizer-test.zip"
               },
-              "Handler": "handler.verifyAuthToken",
+              "Handler": "handler.authorizer",
               "Runtime": "nodejs20.x",
-              "FunctionName": "verify-auth-token",
+              "FunctionName": "authorizer-test-dev-authorizeJwtToken",
               "MemorySize": 1024,
               "Timeout": 29,
-              "Description": "User token verify function",
+              "TracingConfig": {
+                "Mode": "Active"
+              },
+              "Role": "arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda"
+            },
+            "DependsOn": [
+              "AuthorizeJwtTokenLogGroup"
+            ]
+          },
+          "RegisterUserLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/authorizer-test/dev/1728657536245-2024-10-11T14:38:56.245Z/authorizer-test.zip"
+              },
+              "Handler": "handler.userRegister",
+              "Runtime": "nodejs20.x",
+              "FunctionName": "user-register",
+              "MemorySize": 1024,
+              "Timeout": 29,
+              "Description": "Register function",
               "TracingConfig": {
                 "Mode": "Active"
               },
@@ -168,52 +200,20 @@
                   "XRAY_ENABLED": "true",
                   "STAGE": "dev",
                   "DATABASE_URL": "mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App",
-                  "DB_NAME": "auths",
+                  "DB_NAME": "blog-users",
                   "JWT_KEY": "secret"
                 }
               },
               "Role": "arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda"
             },
             "DependsOn": [
-              "VerifyAuthTokenLogGroup"
-            ]
-          },
-          "StoreAuthUserLambdaFunction": {
-            "Type": "AWS::Lambda::Function",
-            "Properties": {
-              "Code": {
-                "S3Bucket": {
-                  "Ref": "ServerlessDeploymentBucket"
-                },
-                "S3Key": "serverless/aws-node-project/dev/1728284481975-2024-10-07T07:01:21.975Z/aws-node-project.zip"
-              },
-              "Handler": "handler.storeAuthUser",
-              "Runtime": "nodejs20.x",
-              "FunctionName": "store-auth-user",
-              "MemorySize": 1024,
-              "Timeout": 29,
-              "Description": "Store user function",
-              "TracingConfig": {
-                "Mode": "Active"
-              },
-              "Environment": {
-                "Variables": {
-                  "XRAY_ENABLED": "true",
-                  "STAGE": "dev",
-                  "DATABASE_URL": "mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App",
-                  "DB_NAME": "auths"
-                }
-              },
-              "Role": "arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda"
-            },
-            "DependsOn": [
-              "StoreAuthUserLogGroup"
+              "RegisterUserLogGroup"
             ]
           },
           "ApiGatewayRestApi": {
             "Type": "AWS::ApiGateway::RestApi",
             "Properties": {
-              "Name": "dev-aws-node-project",
+              "Name": "dev-authorizer-test",
               "EndpointConfiguration": {
                 "Types": [
                   "REGIONAL"
@@ -222,7 +222,7 @@
               "Policy": ""
             }
           },
-          "ApiGatewayResourceApi": {
+          "ApiGatewayResourceLogin": {
             "Type": "AWS::ApiGateway::Resource",
             "Properties": {
               "ParentId": {
@@ -231,96 +231,28 @@
                   "RootResourceId"
                 ]
               },
-              "PathPart": "api",
-              "RestApiId": {
-                "Ref": "ApiGatewayRestApi"
-              }
-            }
-          },
-          "ApiGatewayResourceApiV10": {
-            "Type": "AWS::ApiGateway::Resource",
-            "Properties": {
-              "ParentId": {
-                "Ref": "ApiGatewayResourceApi"
-              },
-              "PathPart": "v1.0",
-              "RestApiId": {
-                "Ref": "ApiGatewayRestApi"
-              }
-            }
-          },
-          "ApiGatewayResourceApiV10Blogsite": {
-            "Type": "AWS::ApiGateway::Resource",
-            "Properties": {
-              "ParentId": {
-                "Ref": "ApiGatewayResourceApiV10"
-              },
-              "PathPart": "blogsite",
-              "RestApiId": {
-                "Ref": "ApiGatewayRestApi"
-              }
-            }
-          },
-          "ApiGatewayResourceApiV10BlogsiteLogin": {
-            "Type": "AWS::ApiGateway::Resource",
-            "Properties": {
-              "ParentId": {
-                "Ref": "ApiGatewayResourceApiV10Blogsite"
-              },
               "PathPart": "login",
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               }
             }
           },
-          "ApiGatewayMethodApiV10BlogsiteLoginOptions": {
-            "Type": "AWS::ApiGateway::Method",
+          "ApiGatewayResourceRegister": {
+            "Type": "AWS::ApiGateway::Resource",
             "Properties": {
-              "AuthorizationType": "NONE",
-              "HttpMethod": "OPTIONS",
-              "MethodResponses": [
-                {
-                  "StatusCode": "200",
-                  "ResponseParameters": {
-                    "method.response.header.Access-Control-Allow-Origin": true,
-                    "method.response.header.Access-Control-Allow-Headers": true,
-                    "method.response.header.Access-Control-Allow-Methods": true,
-                    "method.response.header.Access-Control-Allow-Credentials": true
-                  },
-                  "ResponseModels": {}
-                }
-              ],
-              "RequestParameters": {},
-              "Integration": {
-                "Type": "MOCK",
-                "RequestTemplates": {
-                  "application/json": "{statusCode:200}"
-                },
-                "ContentHandling": "CONVERT_TO_TEXT",
-                "IntegrationResponses": [
-                  {
-                    "StatusCode": "200",
-                    "ResponseParameters": {
-                      "method.response.header.Access-Control-Allow-Origin": "'*'",
-                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,Authorization'",
-                      "method.response.header.Access-Control-Allow-Methods": "'GET,POST,PATCH,PUT,DELETE,OPTIONS'",
-                      "method.response.header.Access-Control-Allow-Credentials": "'true'"
-                    },
-                    "ResponseTemplates": {
-                      "application/json": ""
-                    }
-                  }
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
                 ]
               },
-              "ResourceId": {
-                "Ref": "ApiGatewayResourceApiV10BlogsiteLogin"
-              },
+              "PathPart": "register",
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               }
             }
           },
-          "ApiGatewayMethodApiV10BlogsiteOptions": {
+          "ApiGatewayMethodLoginOptions": {
             "Type": "AWS::ApiGateway::Method",
             "Properties": {
               "AuthorizationType": "NONE",
@@ -358,20 +290,65 @@
                 ]
               },
               "ResourceId": {
-                "Ref": "ApiGatewayResourceApiV10Blogsite"
+                "Ref": "ApiGatewayResourceLogin"
               },
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               }
             }
           },
-          "ApiGatewayMethodApiV10BlogsiteLoginPost": {
+          "ApiGatewayMethodRegisterOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent,X-Amzn-Trace-Id'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": ""
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceRegister"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodLoginPost": {
             "Type": "AWS::ApiGateway::Method",
             "Properties": {
               "HttpMethod": "POST",
               "RequestParameters": {},
               "ResourceId": {
-                "Ref": "ApiGatewayResourceApiV10BlogsiteLogin"
+                "Ref": "ApiGatewayResourceLogin"
               },
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
@@ -411,19 +388,22 @@
               "UserLoginLambdaPermissionApiGateway"
             ]
           },
-          "ApiGatewayMethodApiV10BlogsitePost": {
+          "ApiGatewayMethodRegisterPost": {
             "Type": "AWS::ApiGateway::Method",
             "Properties": {
               "HttpMethod": "POST",
               "RequestParameters": {},
               "ResourceId": {
-                "Ref": "ApiGatewayResourceApiV10Blogsite"
+                "Ref": "ApiGatewayResourceRegister"
               },
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               },
               "ApiKeyRequired": false,
-              "AuthorizationType": "NONE",
+              "AuthorizationType": "CUSTOM",
+              "AuthorizerId": {
+                "Ref": "AuthorizeJwtTokenApiGatewayAuthorizer"
+              },
               "Integration": {
                 "IntegrationHttpMethod": "POST",
                 "Type": "AWS_PROXY",
@@ -442,7 +422,7 @@
                       ":lambda:path/2015-03-31/functions/",
                       {
                         "Fn::GetAtt": [
-                          "StoreAuthUserLambdaFunction",
+                          "RegisterUserLambdaFunction",
                           "Arn"
                         ]
                       },
@@ -454,10 +434,45 @@
               "MethodResponses": []
             },
             "DependsOn": [
-              "StoreAuthUserLambdaPermissionApiGateway"
+              "AuthorizeJwtTokenApiGatewayAuthorizer"
             ]
           },
-          "ApiGatewayDeployment1728284476996": {
+          "AuthorizeJwtTokenApiGatewayAuthorizer": {
+            "Type": "AWS::ApiGateway::Authorizer",
+            "Properties": {
+              "AuthorizerResultTtlInSeconds": 300,
+              "IdentitySource": "method.request.header.Authorization",
+              "Name": "authorizeJwtToken",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "AuthorizerUri": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":apigateway:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":lambda:path/2015-03-31/functions/",
+                    {
+                      "Fn::GetAtt": [
+                        "AuthorizeJwtTokenLambdaFunction",
+                        "Arn"
+                      ]
+                    },
+                    "/invocations"
+                  ]
+                ]
+              },
+              "Type": "TOKEN"
+            }
+          },
+          "ApiGatewayDeployment1728657532036": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -466,10 +481,10 @@
               "StageName": "dev"
             },
             "DependsOn": [
-              "ApiGatewayMethodApiV10BlogsiteLoginOptions",
-              "ApiGatewayMethodApiV10BlogsiteOptions",
-              "ApiGatewayMethodApiV10BlogsiteLoginPost",
-              "ApiGatewayMethodApiV10BlogsitePost"
+              "ApiGatewayMethodLoginOptions",
+              "ApiGatewayMethodRegisterOptions",
+              "ApiGatewayMethodLoginPost",
+              "ApiGatewayMethodRegisterPost"
             ]
           },
           "UserLoginLambdaPermissionApiGateway": {
@@ -509,12 +524,49 @@
               }
             }
           },
-          "StoreAuthUserLambdaPermissionApiGateway": {
+          "RegisterUserLambdaPermissionApiGateway": {
             "Type": "AWS::Lambda::Permission",
             "Properties": {
               "FunctionName": {
                 "Fn::GetAtt": [
-                  "StoreAuthUserLambdaFunction",
+                  "RegisterUserLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "AuthorizeJwtTokenLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "AuthorizeJwtTokenLambdaFunction",
                   "Arn"
                 ]
               },
@@ -579,7 +631,7 @@
               "Ref": "ServerlessDeploymentBucket"
             },
             "Export": {
-              "Name": "sls-aws-node-project-dev-ServerlessDeploymentBucketName"
+              "Name": "sls-authorizer-test-dev-ServerlessDeploymentBucketName"
             }
           },
           "ServiceEndpoint": {
@@ -605,7 +657,18 @@
               ]
             },
             "Export": {
-              "Name": "sls-aws-node-project-dev-ServiceEndpoint"
+              "Name": "sls-authorizer-test-dev-ServiceEndpoint"
+            }
+          },
+          "AuthorizationJwtTokenArn": {
+            "Value": {
+              "Fn::GetAtt": [
+                "AuthorizeJwtTokenLambdaFunction",
+                "Arn"
+              ]
+            },
+            "Export": {
+              "Name": "AuthorizationJwtTokenArn"
             }
           }
         }
@@ -698,8 +761,8 @@
     "functions": {
       "UserLogin": {
         "handler": "handler.userLogin",
-        "description": "User Login function",
-        "name": "user-login",
+        "description": "Login function",
+        "name": "login",
         "environment": {
           "XRAY_ENABLED": "true",
           "STAGE": "dev",
@@ -710,66 +773,7 @@
         "events": [
           {
             "http": {
-              "path": "api/v1.0/blogsite/login",
-              "method": "post",
-              "cors": {
-                "origin": "*",
-                "methods": [
-                  "GET",
-                  "POST",
-                  "PATCH",
-                  "PUT",
-                  "DELETE",
-                  "OPTIONS"
-                ],
-                "headers": [
-                  "Content-Type",
-                  "Authorization"
-                ],
-                "allowCredentials": true
-              },
-              "integration": "AWS_PROXY"
-            }
-          }
-        ],
-        "package": {},
-        "memory": 1024,
-        "timeout": 29,
-        "runtime": "nodejs20.x",
-        "vpc": {}
-      },
-      "VerifyAuthToken": {
-        "handler": "handler.verifyAuthToken",
-        "description": "User token verify function",
-        "name": "verify-auth-token",
-        "environment": {
-          "XRAY_ENABLED": "true",
-          "STAGE": "dev",
-          "DATABASE_URL": "mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App",
-          "DB_NAME": "auths",
-          "JWT_KEY": "secret"
-        },
-        "events": [],
-        "package": {},
-        "memory": 1024,
-        "timeout": 29,
-        "runtime": "nodejs20.x",
-        "vpc": {}
-      },
-      "StoreAuthUser": {
-        "handler": "handler.storeAuthUser",
-        "description": "Store user function",
-        "name": "store-auth-user",
-        "environment": {
-          "XRAY_ENABLED": "true",
-          "STAGE": "dev",
-          "DATABASE_URL": "mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App",
-          "DB_NAME": "auths"
-        },
-        "events": [
-          {
-            "http": {
-              "path": "api/v1.0/blogsite",
+              "path": "login",
               "method": "post",
               "cors": {
                 "origin": "*",
@@ -797,9 +801,85 @@
         "timeout": 29,
         "runtime": "nodejs20.x",
         "vpc": {}
+      },
+      "authorizeJwtToken": {
+        "handler": "handler.authorizer",
+        "events": [],
+        "name": "authorizer-test-dev-authorizeJwtToken",
+        "package": {},
+        "memory": 1024,
+        "timeout": 29,
+        "runtime": "nodejs20.x",
+        "vpc": {}
+      },
+      "registerUser": {
+        "handler": "handler.userRegister",
+        "description": "Register function",
+        "name": "user-register",
+        "environment": {
+          "XRAY_ENABLED": "true",
+          "STAGE": "dev",
+          "DATABASE_URL": "mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App",
+          "DB_NAME": "blog-users",
+          "JWT_KEY": "secret"
+        },
+        "events": [
+          {
+            "http": {
+              "path": "register",
+              "method": "post",
+              "cors": {
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "POST"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent",
+                  "X-Amzn-Trace-Id"
+                ],
+                "allowCredentials": false
+              },
+              "authorizer": {
+                "name": "authorizeJwtToken",
+                "arn": {
+                  "$ref": "$[\"service\"][\"provider\"][\"compiledCloudFormationTemplate\"][\"Resources\"][\"AuthorizeJwtTokenLambdaPermissionApiGateway\"][\"Properties\"][\"FunctionName\"]"
+                },
+                "managedExternally": false,
+                "resultTtlInSeconds": 300,
+                "identitySource": "method.request.header.Authorization",
+                "claims": []
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "package": {},
+        "memory": 1024,
+        "timeout": 29,
+        "runtime": "nodejs20.x",
+        "vpc": {}
       }
     },
     "resources": {
+      "Outputs": {
+        "AuthorizationJwtTokenArn": {
+          "Value": {
+            "Fn::GetAtt": [
+              "AuthorizeJwtTokenLambdaFunction",
+              "Arn"
+            ]
+          },
+          "Export": {
+            "Name": "AuthorizationJwtTokenArn"
+          }
+        }
+      },
       "Resources": {
         "GatewayResponseDefault4XX": {
           "Type": "AWS::ApiGateway::GatewayResponse",
@@ -827,13 +907,12 @@
             }
           }
         }
-      },
-      "Outputs": {}
+      }
     },
     "configValidationMode": "warn",
     "serviceFilename": "serverless.yml",
     "initialServerlessConfig": {
-      "service": "aws-node-project",
+      "service": "authorizer-test",
       "provider": {
         "$ref": "$[\"service\"][\"provider\"]"
       },
@@ -851,17 +930,17 @@
           ".npm/**",
           ".idea/**"
         ],
-        "artifactsS3KeyDirname": "serverless/aws-node-project/dev/code-artifacts",
-        "artifact": "D:\\BlogApp\\BlogAppBackend\\AWS-Node\\.serverless\\aws-node-project.zip",
-        "artifactDirectoryName": "serverless/aws-node-project/dev/1728284481975-2024-10-07T07:01:21.975Z"
+        "artifactsS3KeyDirname": "serverless/authorizer-test/dev/code-artifacts",
+        "artifact": "D:\\aws-node-project\\.serverless\\authorizer-test.zip",
+        "artifactDirectoryName": "serverless/authorizer-test/dev/1728657536245-2024-10-11T14:38:56.245Z"
       }
     },
     "layers": {},
     "isDashboardMonitoringPreconfigured": false,
-    "artifact": "D:\\BlogApp\\BlogAppBackend\\AWS-Node\\.serverless\\aws-node-project.zip"
+    "artifact": "D:\\aws-node-project\\.serverless\\authorizer-test.zip"
   },
   "package": {
-    "artifactDirectoryName": "serverless/aws-node-project/dev/1728284481975-2024-10-07T07:01:21.975Z",
-    "artifact": "aws-node-project.zip"
+    "artifactDirectoryName": "serverless/authorizer-test/dev/1728657536245-2024-10-11T14:38:56.245Z",
+    "artifact": "authorizer-test.zip"
   }
 }

@@ -1,7 +1,9 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const Auth = require('./model/auth.js');
+const User = require('./model/user.js');
 const dotenv = require("dotenv");
+const { emailConflictError, validationError} = require('./middleware/errorHandler.js')
 dotenv.config();
 const DB_URL = process.env.DATABASE_URL;
 const connectDB = require("./config/db.config.js");
@@ -9,12 +11,6 @@ console.log("DB_URL", DB_URL);
 connectDB(DB_URL);
 
 module.exports.userLogin = async (event) => {
-    const headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'POST,OPTIONS',
-        'Access-Control-Allow-Credentials': true,
-    }
     const input = JSON.parse(event.body);
     try {
         const { email, password } = input;
@@ -39,6 +35,7 @@ module.exports.userLogin = async (event) => {
                 body: JSON.stringify({ message: "Invalid credentials!" })
             };
         }
+        console.log(user)
         const payload = {
             user_id: user.user_id,
             user_type: user.user_type,
@@ -48,7 +45,6 @@ module.exports.userLogin = async (event) => {
         const token = jwt.sign(payload, 'secret');
         return {
             statusCode: 200,
-            headers: headers,
             body: JSON.stringify({
                 message: "Authentication successful!",
                 result: payload,
@@ -64,60 +60,59 @@ module.exports.userLogin = async (event) => {
     }
 };
 
-module.exports.verifyAuthToken = (event, context, callback) => {
-    const token = event.headers.authorization.split(' ')[1];
-    if (!token) {
-        return callback(null, {
-            statusCode: 401,
-            body: JSON.stringify({ message: "Unauthorized" })
-        });
+module.exports.authorizer = async (event) => {
+    console.log('event', event);
+    const token = event.authorizationToken.split(' ')[1];
+    try {
+        const decoded = jwt.verify(token, 'secret');
+        const userId = decoded.user_id;
+        return generatePolicyDocument(userId, 'Allow', event.methodArn)
+    } catch (error) {
+        console.log('Error in authorizer', error);
+        return generatePolicyDocument('user', 'Deny', event.methodArn)
     }
-    jwt.verify(token, 'secret', (err, decoded) => {
-        if (err) {
-            return callback(null, {
-                statusCode: 401,
-                body: JSON.stringify({ message: "Unauthorized" })
-            });
-        }
-        callback(null, generatePolicy(decoded.user_id, 'Allow', event.methodArn))
-        return callback(null, {
-            statusCode: 200,
-            body: JSON.stringify({ message: "Authorized", user: decoded })
-        });
-    });
-};
+}
 
-const generatePolicy = (principalId, effect, resource) => {
+const generatePolicyDocument = (principalId, effect, resource) => {
     const authResponse = {};
     authResponse.principalId = principalId;
     if (effect && resource) {
         const policyDocument = {
             Version: '2012-10-17',
-            Statement: [
-                {
-                    Action: 'execute-api:Invoke',
-                    Effect: effect,
-                    Resource: resource
-                }
-            ]
+            Statement: [{
+                Action: 'execute-api:Invoke',
+                Effect: effect,
+                Resource: resource
+            }]
         };
         authResponse.policyDocument = policyDocument;
     }
-    return authResponse;
+    return authResponse
+}
+
+module.exports.userRegister = async (event) => {
+    const input = JSON.parse(event.body);
+    let { user_name, email, password, user_type } = input;
+    user_type = user_type === undefined ?  "user": user_type;
+    const dataOne = { user_name, email, password, user_type };
+    console.log("dataOne", dataOne);
+    try {
+        const user = await User.create(dataOne);
+        if (user) {
+            return { statusCode: 201, body: JSON.stringify({ message: "User created successfully!" }) };
+        } else {
+            return { statusCode: 400, body: JSON.stringify({ message: "Something went wrong!" }) };
+        }
+    } catch (error) {
+        if (error.name === 'ValidationError') {
+            return { statusCode: 400, body: JSON.stringify({ message:validationError(error) }) };
+        }
+        if (error.code === 11000) {
+            return { statusCode: 409, body: JSON.stringify({ message:emailConflictError(error) }) };
+        }
+        console.log("Error", error.message);
+        return { statusCode: 500, body: JSON.stringify({ message: "Internal server error!"}) };
+    }
 };
 
 
-// store user infor for login
-module.exports.storeAuthUser = async (event) => {
-    const input = JSON.parse(event.body);
-    const { user_id, user_name, email, password, user_type } = input;
-    const data = { user_id: user_id, user_name: user_name, email: email, password: password, user_type: user_type }
-    try {
-        const auth = await Auth.create(data)
-        if (auth) {
-            return { statusCode: 201, body: JSON.stringify({ message: "Auth user created successfully!" }) };
-        } else { return { statusCode: 400, body: JSON.stringify({ message: error.message }) } }
-    } catch (error) {
-        return { statusCode: 500, body: JSON.stringify({ message: "Internal server error" }) };
-    }
-}

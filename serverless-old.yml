@@ -1,11 +1,11 @@
-service: authorizer-test
+service: aws-node-project
 
 provider:
   name: aws
   runtime: nodejs20.x
   region: us-east-1
   stage: dev
-  stackName: Auth-Test-For-API-Gateway
+  stackName: Node-API-Auth
   role: arn:aws:iam::050752626146:role/ExecutionRoleForS3AndLambda
   memorySize: 1024
   timeout: 29
@@ -15,16 +15,11 @@ provider:
     lambda: true
   stackTags:
     environment: dev
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - lambda:InvokeFunction
-      Resource: '*'  
 functions:
   UserLogin:
     handler: handler.userLogin
-    description: Login function
-    name: login
+    description: User Login function
+    name: user-login
     environment:
       XRAY_ENABLED: true
       STAGE: dev
@@ -33,35 +28,32 @@ functions:
       JWT_KEY: secret
     events:
       - http:
-          path: /login
+          path: /api/v1.0/blogsite/login
           method: post
-          cors: true 
-  authorizeJwtToken: 
-    handler: handler.authorizer
-  registerUser:
-    handler: handler.userRegister
-    description: Register function
-    name: user-register
+          cors: 
+            origin: '*'
+            headers:
+              - Content-Type
+              - Authorization
+            allowCredentials: true
+            methods:
+              - GET
+              - POST
+              - PATCH
+              - PUT
+              - DELETE
+              - OPTIONS
+  VerifyToken:
+    handler: handler.verifyToken
+    description: User token verify function
+    name: user-jwt-token
     environment:
       XRAY_ENABLED: true
       STAGE: dev
       DATABASE_URL: mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App
-      DB_NAME: blog-users
-      JWT_KEY: secret
-    events:
-      - http:
-          path: /register
-          method: post
-          cors: true 
-          authorizer: 
-            name: authorizeJwtToken                  
+      DB_NAME: auths
+      JWT_KEY: secret                           
 resources:
-  Outputs:
-    AuthorizationJwtTokenArn:
-      Value: 
-        Fn::GetAtt: [AuthorizeJwtTokenLambdaFunction, Arn]
-      Export:
-        Name: AuthorizationJwtTokenArn
   Resources:
     GatewayResponseDefault4XX:
       Type: 'AWS::ApiGateway::GatewayResponse'
