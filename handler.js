@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const Auth = require('./model/auth.js');
 const User = require('./model/user.js');
 const dotenv = require("dotenv");
-const { emailConflictError, validationError} = require('./middleware/errorHandler.js')
+const { emailConflictError, validationError } = require('./middleware/errorHandler.js')
 dotenv.config();
 const DB_URL = process.env.DATABASE_URL;
 const connectDB = require("./config/db.config.js");
@@ -93,25 +93,25 @@ const generatePolicyDocument = (principalId, effect, resource) => {
 module.exports.userRegister = async (event) => {
     const input = JSON.parse(event.body);
     let { user_name, email, password, user_type } = input;
-    user_type = user_type === undefined ?  "user": user_type;
+    user_type = user_type === undefined ? "user" : user_type;
     const dataOne = { user_name, email, password, user_type };
     console.log("dataOne", dataOne);
     try {
         const user = await User.create(dataOne);
         if (user) {
-            return { statusCode: 201, body: JSON.stringify({ message: "User created successfully!" }) };
+            return { statusCode: 200, body: JSON.stringify({ message: "User created successfully!" }) };
         } else {
             return { statusCode: 400, body: JSON.stringify({ message: "Something went wrong!" }) };
         }
     } catch (error) {
         if (error.name === 'ValidationError') {
-            return { statusCode: 400, body: JSON.stringify({ message:validationError(error) }) };
+            return { statusCode: 400, body: JSON.stringify({ message: validationError(error) }) };
         }
         if (error.code === 11000) {
-            return { statusCode: 409, body: JSON.stringify({ message:emailConflictError(error) }) };
+            return { statusCode: 409, body: JSON.stringify({ message: emailConflictError(error) }) };
         }
         console.log("Error", error.message);
-        return { statusCode: 500, body: JSON.stringify({ message: "Internal server error!"}) };
+        return { statusCode: 500, body: JSON.stringify({ message: "Internal server error!" }) };
     }
 };
 
