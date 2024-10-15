@@ -19,7 +19,7 @@ provider:
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
-      Resource: '*'  
+      Resource: "*"
 functions:
   UserLogin:
     handler: handler.userLogin
@@ -35,8 +35,8 @@ functions:
       - http:
           path: /login
           method: post
-          cors: true 
-  authorizeJwtToken: 
+          cors: true
+  authorizeJwtToken:
     handler: handler.authorizer
   registerUser:
     handler: handler.userRegister
@@ -52,35 +52,52 @@ functions:
       - http:
           path: /register
           method: post
-          cors: true 
-          authorizer: 
-            name: authorizeJwtToken                  
+          cors: true
+          authorizer:
+            name: authorizeJwtToken
+  getUserById:
+    handler: handler.getUserById
+    description: Get user function
+    name: get-user-details
+    environment:
+      XRAY_ENABLED: true
+      STAGE: dev
+      DATABASE_URL: mongodb+srv://vishwakarma137:nQc7HjtfDSaB19Db@blog-app.a414a.mongodb.net/?retryWrites=true&w=majority&appName=Blog-App
+      DB_NAME: blog-users
+      JWT_KEY: secret
+    events:
+      - http:
+          path: /get-user-details/{id}
+          method: get
+          cors: true
+          authorizer:
+            name: authorizeJwtToken
 resources:
   Outputs:
     AuthorizationJwtTokenArn:
-      Value: 
+      Value:
         Fn::GetAtt: [AuthorizeJwtTokenLambdaFunction, Arn]
       Export:
         Name: AuthorizationJwtTokenArn
   Resources:
     GatewayResponseDefault4XX:
-      Type: 'AWS::ApiGateway::GatewayResponse'
+      Type: "AWS::ApiGateway::GatewayResponse"
       Properties:
         ResponseParameters:
           gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
           gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
         ResponseType: DEFAULT_4XX
         RestApiId:
-          Ref: 'ApiGatewayRestApi'
+          Ref: "ApiGatewayRestApi"
     GatewayResponseDEFAULT5XX:
-      Type: 'AWS::ApiGateway::GatewayResponse'
+      Type: "AWS::ApiGateway::GatewayResponse"
       Properties:
         ResponseParameters:
           gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
           gatewayresponse.header.Access-Control-Allow-Headers: "'Content-Type,Authorization'"
         ResponseType: DEFAULT_5XX
         RestApiId:
-          Ref: 'ApiGatewayRestApi'
+          Ref: "ApiGatewayRestApi"
 package:
   exclude:
     - coverage/**
@@ -88,5 +105,3 @@ package:
     - package-lock.json
     - .npm/**
     - .idea/**
- 
- 
